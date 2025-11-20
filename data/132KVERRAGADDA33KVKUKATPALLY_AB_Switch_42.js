@@ -1,0 +1,1 @@
+var json_132KVERRAGADDA33KVKUKATPALLY_AB_Switch_42 = {"type":"FeatureCollection","name":"132KVERRAGADDA33KVKUKATPALLY_AB_Switch_42","crs":{"type":"name","properties":{"name":"urn:ogc:def:crs:OGC:1.3:CRS84"}},"features":[]}

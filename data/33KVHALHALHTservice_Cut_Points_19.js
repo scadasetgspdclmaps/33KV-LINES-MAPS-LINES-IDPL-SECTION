@@ -1,0 +1,1 @@
+var json_33KVHALHALHTservice_Cut_Points_19 = {"type":"FeatureCollection","name":"33KVHALHALHTservice_Cut_Points_19","crs":{"type":"name","properties":{"name":"urn:ogc:def:crs:OGC:1.3:CRS84"}},"features":[{"type":"Feature","properties":{"fid":"1","Label":"Cut"},"geometry":{"type":"Point","coordinates":[78.453119,17.477344]}}]}

@@ -1,0 +1,1 @@
+var json_132KVERRAGADA33KVGLASSFACTORY_Double_Pole_Structure_78 = {"type":"FeatureCollection","name":"132KVERRAGADA33KVGLASSFACTORY_Double_Pole_Structure_78","crs":{"type":"name","properties":{"name":"urn:ogc:def:crs:OGC:1.3:CRS84"}},"features":[{"type":"Feature","properties":{"fid":"1","Label":"DP"},"geometry":{"type":"Point","coordinates":[78.419336,17.45807]}}]}

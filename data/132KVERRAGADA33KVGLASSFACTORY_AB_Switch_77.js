@@ -1,0 +1,1 @@
+var json_132KVERRAGADA33KVGLASSFACTORY_AB_Switch_77 = {"type":"FeatureCollection","name":"132KVERRAGADA33KVGLASSFACTORY_AB_Switch_77","crs":{"type":"name","properties":{"name":"urn:ogc:def:crs:OGC:1.3:CRS84"}},"features":[]}

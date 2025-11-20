@@ -1,0 +1,1 @@
+var json_132KVIDPL33KVIDPL2_Cut_Points_64 = {"type":"FeatureCollection","name":"132KVIDPL33KVIDPL2_Cut_Points_64","crs":{"type":"name","properties":{"name":"urn:ogc:def:crs:OGC:1.3:CRS84"}},"features":[{"type":"Feature","properties":{"fid":"1","Label":"Cut"},"geometry":{"type":"Point","coordinates":[78.433845,17.470317]}}]}
