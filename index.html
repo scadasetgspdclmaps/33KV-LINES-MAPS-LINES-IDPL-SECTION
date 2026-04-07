@@ -4,14 +4,13 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
 <title>TGSPDCL — 33KV IDPL Section GIS</title>
-<!-- IDPL clone generated from James Street template -->
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 
-
+<!-- ══ IDPL SECTION DATA FILES ══ -->
 <script src="data/33KVPRAGATOOLSPragatoolshtservice_1.js"></script>
 <script src="data/33KVPRAGATOOLSPragatoolshtservice_AB_Switch_2.js"></script>
 <script src="data/33KVPRAGATOOLSPragatoolshtservice_Double_Pole_Structure_3.js"></script>
@@ -107,7 +106,7 @@
 <script src="data/132KVCHINTAL33KVHAL_Double_Pole_Structure_93.js"></script>
 <script src="data/132KVCHINTAL33KVHAL_Cut_Points_94.js"></script>
 <script src="data/132KVCHINTAL33KVHAL_Feeder_Lines_95.js"></script>
-<script src="data/Feeder_Segments_96.js"></script>
+<!-- Feeder_Segments_96 is loaded deferred after map init -->
 <script src="data/Feeder_Segments_WEB_DISPLAY_97.js"></script>
 <script src="data/Feeder_Segments_WEB_INTERACT_98.js"></script>
 <script src="data/FeederPoles_99.js"></script>
@@ -363,7 +362,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--navy)}
   animation: energy-flow-overlay 0.8s linear infinite !important;
   pointer-events: none !important;
 }
-/* Leaflet puts the className on the <path> element directly in SVG mode */
 path.feeder-flow-overlay {
   stroke-dasharray: 4 20 !important;
   stroke-linecap: round !important;
@@ -442,14 +440,14 @@ path.feeder-flow-overlay {
 
 <div id="loader">
   <div class="ld-logo">TGSPDCL</div>
-  <div class="ld-sub">JAMES STREET SECTION · 33KV</div>
+  <div class="ld-sub">IDPL SECTION · 33KV</div>
   <div class="ld-bar"><div class="ld-fill" id="ldfill"></div></div>
 </div>
 
 <div id="topbar">
   <div class="tb-logo">TGSPDCL</div>
   <div class="tb-sep"></div>
-  <div class="tb-title">IDPL Section — 33KV Distribution GIS</div>
+  <div class="tb-title">IDPL Circle — 33KV Distribution GIS</div>
   <div id="srchWrap">
     <input id="srchInput" placeholder="Search pole no., feeder, cable point…" autocomplete="off"/>
     <span class="srch-ic">⌕</span>
@@ -461,6 +459,7 @@ path.feeder-flow-overlay {
 <div id="ptab" onclick="togglePanel()">◀</div>
 
 <div id="panel">
+  <div id="panel-resize"></div>
   <div class="psec">
     <div class="psec-t" style="display:flex;justify-content:space-between;align-items:center">
       // FEEDERS (Click Name to Focus)
@@ -474,9 +473,9 @@ path.feeder-flow-overlay {
 </div><div id="map"></div>
 
 <div id="botbar">
-  <span>LAT/LNG: <span id="coords">17.4364, 78.4776</span></span>
-  <span>ZOOM: <span id="zoomLvl">18</span></span>
-  <span style="margin-left:auto;opacity:.4">JAMES STREET · 33KV · TGSPDCL SCADA SECTION</span>
+  <span>LAT/LNG: <span id="coords">17.4870, 78.4436</span></span>
+  <span>ZOOM: <span id="zoomLvl">15</span></span>
+  <span style="margin-left:auto;opacity:.4">IDPL · 33KV · TGSPDCL SCADA SECTION</span>
 </div>
 
 <div id="legend">
@@ -554,23 +553,20 @@ path.feeder-flow-overlay {
 // MAP CORE & Z-INDEX PANES
 // ══════════════════════════════════════════════════
 const map = L.map('map',{
-  center:[17.4870,78.4435], zoom:16, zoomControl:false, preferCanvas:false,
+  center:[17.4870, 78.4436], zoom:15, zoomControl:false, preferCanvas:false,
   zoomAnimation:true, fadeAnimation:true, markerZoomAnimation:true
 });
 
-// CRITICAL FIX: Custom Z-index pane guarantees poles/points float physically above lines
 map.createPane('pointsPane');
-map.getPane('pointsPane').style.zIndex = 650; 
+map.getPane('pointsPane').style.zIndex = 650;
 
 L.control.zoom({position:'bottomright'}).addTo(map);
 L.control.scale({position:'bottomright',imperial:false}).addTo(map);
 window.addEventListener('resize', () => map.invalidateSize());
 
-// Dedicated pane for flow dot overlays — pointer-events:none at container level
-// This is the definitive fix so flow dots NEVER intercept clicks
 map.createPane('flowPane');
 map.getPane('flowPane').style.pointerEvents = 'none';
-map.getPane('flowPane').style.zIndex = 401; // Above overlayPane(400) so dots show on top of lines
+map.getPane('flowPane').style.zIndex = 401;
 
 function safelyManageClass(layer, className, add) {
     if(!layer) return;
@@ -611,34 +607,35 @@ function setBM(name){
 // ══════════════════════════════════════════════════
 // SMART FEEDER MAPPING ENGINE
 // ══════════════════════════════════════════════════
-const allLayers = []; 
+const allLayers = [];
 const feederNames = new Set();
-const feederState = {}; 
-const feederStatus = {}; 
-const feederLayerMap = {}; 
+const feederState = {};
+const feederStatus = {};
+const feederLayerMap = {};
 
 const LGstate = { 'ug-lines':true, 'oh-lines':true, points:true, dp:true, ab:true, cut:true, ss33:true, ehts:true, fsegs:true };
 let cableFilter = 'all';
-let globalFeederFallback = true; 
+let globalFeederFallback = true;
 
-// Clean a raw string to strip out 33KV, SS, dashes, etc so segments match master names perfectly
+function mkIcon(fill,stroke,shape){
+  const s=`<svg xmlns='http://www.w3.org/2000/svg' width='13' height='13'>${shape==='square'?`<rect width='13' height='13' rx='2' fill='${fill}' stroke='${stroke}' stroke-width='2'/>`:`<circle cx='6.5' cy='6.5' r='5.5' fill='${fill}' stroke='${stroke}' stroke-width='2'/>`}</svg>`;
+  return L.divIcon({className:'',html:s,iconSize:[13,13],iconAnchor:[6,6]});
+}
+
 function cleanName(str) {
     if (!str) return '';
     let s = String(str).toUpperCase();
-    s = s.replace(/132\s*KV|33\s*\/\s*11\s*KV|33\s*KV|11\s*KV|SS|FEEDER|LINE|UNDERGROUND|OVERHEAD|UG|OH/g, ' ');
-    return s.replace(/[^A-Z0-9]/g, ''); 
+    s = s.replace(/220\s*KV|132\s*KV|33\s*\/\s*11\s*KV|33\s*KV|11\s*KV|SS|FEEDER|LINE|UNDERGROUND|OVERHEAD|UG|OH/g, ' ');
+    return s.replace(/[^A-Z0-9]/g, '');
 }
 
 function mapFeederName(raw) {
     if(!raw) return null;
     let rawClean = cleanName(raw);
     if(!rawClean || rawClean.length < 5) return null;
-
-    // Direct Match
     for(let std of feederNames) {
         if(cleanName(std) === rawClean) return std;
     }
-    // Subset Match
     for(let std of feederNames) {
         let stdClean = cleanName(std);
         if(stdClean.length > 4 && rawClean.length > 4) {
@@ -648,7 +645,6 @@ function mapFeederName(raw) {
     return null;
 }
 
-// Aggressive attribute checking to bind any orphaned segment to its parent feeder
 function extractFeeder(props, fallback) {
     if (!props) return fallback;
     const keys = ['Feeder Name', 'Feeder_Name', 'Name of the Feeder', 'feeder', 'FEEDER', 'Name', 'NAME', 'Text', 'Layer'];
@@ -667,96 +663,128 @@ function extractFeeder(props, fallback) {
     return fallback;
 }
 
+// ══════════════════════════════════════════════════
+// IDPL SECTION — DATA REGISTRY
+// ══════════════════════════════════════════════════
 const DATA_REGISTRY = [
-  { varName:'json_33KVSEETHAPHALMANDI33KVMONDAMARKET_1', type:'points', feeder:'SEETHAPHALMANDI → MONDAMARKET', cable:'OH' },
-  { varName:'json_33KVSEETHAPHALMANDI33KVMONDAMARKET_AB_Switch_2', type:'ab', feeder:'SEETHAPHALMANDI → MONDAMARKET', cable:'OH' },
-  { varName:'json_33KVSEETHAPHALMANDI33KVMONDAMARKET_Double_Pole_Structure_3',type:'dp', feeder:'SEETHAPHALMANDI → MONDAMARKET', cable:'OH' },
-  { varName:'json_33KVSEETHAPHALMANDI33KVMONDAMARKET_Cut_Points_4', type:'cut', feeder:'SEETHAPHALMANDI → MONDAMARKET', cable:'OH' },
-  { varName:'json_33KVSEETHAPHALMANDI33KVMONDAMARKET_Feeder_Lines_5', type:'lines', feeder:'SEETHAPHALMANDI → MONDAMARKET', cable:'OH' },
-  { varName:'json_33KVMondamarketClocktower_6', type:'points', feeder:'MONDAMARKET → CLOCKTOWER', cable:'OH' },
-  { varName:'json_33KVMondamarketClocktower_AB_Switch_7', type:'ab', feeder:'MONDAMARKET → CLOCKTOWER', cable:'OH' },
-  { varName:'json_33KVMondamarketClocktower_Double_Pole_Structure_8',type:'dp', feeder:'MONDAMARKET → CLOCKTOWER', cable:'OH' },
-  { varName:'json_33KVMondamarketClocktower_Cut_Points_9', type:'cut', feeder:'MONDAMARKET → CLOCKTOWER', cable:'OH' },
-  { varName:'json_33KVMondamarketClocktower_Feeder_Lines_10', type:'lines', feeder:'MONDAMARKET → CLOCKTOWER', cable:'OH' },
-  { varName:'json_33KVKIMSJamesstreet_11', type:'points', feeder:'KIMS → JAMESSTREET', cable:'UG' },
-  { varName:'json_33KVKIMSJamesstreet_AB_Switch_12', type:'ab', feeder:'KIMS → JAMESSTREET', cable:'UG' },
-  { varName:'json_33KVKIMSJamesstreet_Double_Pole_Structure_13',type:'dp', feeder:'KIMS → JAMESSTREET', cable:'UG' },
-  { varName:'json_33KVKIMSJamesstreet_Cut_Points_14', type:'cut', feeder:'KIMS → JAMESSTREET', cable:'UG' },
-  { varName:'json_33KVKIMSJamesstreet_Feeder_Lines_15', type:'lines', feeder:'KIMS → JAMESSTREET', cable:'UG' },
-  { varName:'json_33KVClocktowerNehrunagar_16', type:'points', feeder:'CLOCKTOWER → NEHRUNAGAR', cable:'OH' },
-  { varName:'json_33KVClocktowerNehrunagar_AB_Switch_17', type:'ab', feeder:'CLOCKTOWER → NEHRUNAGAR', cable:'OH' },
-  { varName:'json_33KVClocktowerNehrunagar_Double_Pole_Structure_18',type:'dp', feeder:'CLOCKTOWER → NEHRUNAGAR', cable:'OH' },
-  { varName:'json_33KVClocktowerNehrunagar_Cut_Points_19', type:'cut', feeder:'CLOCKTOWER → NEHRUNAGAR', cable:'OH' },
-  { varName:'json_33KVClocktowerNehrunagar_Feeder_Lines_20', type:'lines', feeder:'CLOCKTOWER → NEHRUNAGAR', cable:'OH' },
-  { varName:'json_132KVPATIGADDA33KVPRAKASHNAGAR_21', type:'points', feeder:'PATIGADDA → PRAKASHNAGAR', cable:'UG' },
-  { varName:'json_132KVPATIGADDA33KVPRAKASHNAGAR_AB_Switch_22', type:'ab', feeder:'PATIGADDA → PRAKASHNAGAR', cable:'UG' },
-  { varName:'json_132KVPATIGADDA33KVPRAKASHNAGAR_Double_Pole_Structure_23',type:'dp', feeder:'PATIGADDA → PRAKASHNAGAR', cable:'UG' },
-  { varName:'json_132KVPATIGADDA33KVPRAKASHNAGAR_Cut_Points_24', type:'cut', feeder:'PATIGADDA → PRAKASHNAGAR', cable:'UG' },
-  { varName:'json_132KVPATIGADDA33KVPRAKASHNAGAR_Feeder_Lines_25', type:'lines', feeder:'PATIGADDA → PRAKASHNAGAR', cable:'UG' },
-  { varName:'json_132KVPATIGADDA33KVSANJEEVAIAHPARK_26', type:'points', feeder:'PATIGADDA → SANJEEVAIAH PARK', cable:'OH' },
-  { varName:'json_132KVPATIGADDA33KVSANJEEVAIAHPARK_AB_Switch_27', type:'ab', feeder:'PATIGADDA → SANJEEVAIAH PARK', cable:'OH' },
-  { varName:'json_132KVPATIGADDA33KVSANJEEVAIAHPARK_Double_Pole_Structure_28',type:'dp', feeder:'PATIGADDA → SANJEEVAIAH PARK', cable:'OH' },
-  { varName:'json_132KVPATIGADDA33KVSANJEEVAIAHPARK_Cut_Points_29', type:'cut', feeder:'PATIGADDA → SANJEEVAIAH PARK', cable:'OH' },
-  { varName:'json_132KVPATIGADDA33KVSANJEEVAIAHPARK_Feeder_Lines_30', type:'lines', feeder:'PATIGADDA → SANJEEVAIAH PARK', cable:'OH' },
-  { varName:'json_132KVPATIGADDA33KVPATIGADDA_31', type:'points', feeder:'PATIGADDA → PATIGADDA', cable:'UG' },
-  { varName:'json_132KVPATIGADDA33KVPATIGADDA_AB_Switch_32', type:'ab', feeder:'PATIGADDA → PATIGADDA', cable:'UG' },
-  { varName:'json_132KVPATIGADDA33KVPATIGADDA_Double_Pole_Structure_33',type:'dp', feeder:'PATIGADDA → PATIGADDA', cable:'UG' },
-  { varName:'json_132KVPATIGADDA33KVPATIGADDA_Cut_Points_34', type:'cut', feeder:'PATIGADDA → PATIGADDA', cable:'UG' },
-  { varName:'json_132KVPATIGADDA33KVPATIGADDA_Feeder_Lines_35', type:'lines', feeder:'PATIGADDA → PATIGADDA', cable:'UG' },
-  { varName:'json_132KVPATIGADDA33KVMONDAMARKET_36', type:'points', feeder:'PATIGADDA → MONDAMARKET', cable:'OH' },
-  { varName:'json_132KVPATIGADDA33KVMONDAMARKET_AB_Switch_37', type:'ab', feeder:'PATIGADDA → MONDAMARKET', cable:'OH' },
-  { varName:'json_132KVPATIGADDA33KVMONDAMARKET_Double_Pole_Structure_38',type:'dp', feeder:'PATIGADDA → MONDAMARKET', cable:'OH' },
-  { varName:'json_132KVPATIGADDA33KVMONDAMARKET_Cut_Points_39', type:'cut', feeder:'PATIGADDA → MONDAMARKET', cable:'OH' },
-  { varName:'json_132KVPATIGADDA33KVMONDAMARKET_Feeder_Lines_40', type:'lines', feeder:'PATIGADDA → MONDAMARKET', cable:'OH' },
-  { varName:'json_132KVPATIGADDA33KVKIMS_41', type:'points', feeder:'PATIGADDA → KIMS', cable:'UG' },
-  { varName:'json_132KVPATIGADDA33KVKIMS_AB_Switch_42', type:'ab', feeder:'PATIGADDA → KIMS', cable:'UG' },
-  { varName:'json_132KVPATIGADDA33KVKIMS_Double_Pole_Structure_43',type:'dp', feeder:'PATIGADDA → KIMS', cable:'UG' },
-  { varName:'json_132KVPATIGADDA33KVKIMS_Cut_Points_44', type:'cut', feeder:'PATIGADDA → KIMS', cable:'UG' },
-  { varName:'json_132KVPATIGADDA33KVKIMS_Feeder_Lines_45', type:'lines', feeder:'PATIGADDA → KIMS', cable:'UG' },
-  { varName:'json_132KVPATIGADDA33KVJAMESSTREET_46', type:'points', feeder:'PATIGADDA → JAMES STREET', cable:'UG' },
-  { varName:'json_132KVPATIGADDA33KVJAMESSTREET_AB_Switch_47', type:'ab', feeder:'PATIGADDA → JAMES STREET', cable:'UG' },
-  { varName:'json_132KVPATIGADDA33KVJAMESSTREET_Double_Pole_Structure_48',type:'dp', feeder:'PATIGADDA → JAMES STREET', cable:'UG' },
-  { varName:'json_132KVPATIGADDA33KVJAMESSTREET_Cut_Points_49', type:'cut', feeder:'PATIGADDA → JAMES STREET', cable:'UG' },
-  { varName:'json_132KVPATIGADDA33KVJAMESSTREET_Feeder_Lines_50', type:'lines', feeder:'PATIGADDA → JAMES STREET', cable:'UG' },
-  { varName:'json_132KVPATIGADDA33KVBANSILALPET_51', type:'points', feeder:'PATIGADDA → BANSILALPET', cable:'UG' },
-  { varName:'json_132KVPATIGADDA33KVBANSILALPET_AB_Switch_52', type:'ab', feeder:'PATIGADDA → BANSILALPET', cable:'UG' },
-  { varName:'json_132KVPATIGADDA33KVBANSILALPET_Double_Pole_Structure_53',type:'dp', feeder:'PATIGADDA → BANSILALPET', cable:'UG' },
-  { varName:'json_132KVPATIGADDA33KVBANSILALPET_Cut_Points_54', type:'cut', feeder:'PATIGADDA → BANSILALPET', cable:'UG' },
-  { varName:'json_132KVPATIGADDA33KVBANSILALPET_Feeder_Lines_55', type:'lines', feeder:'PATIGADDA → BANSILALPET', cable:'UG' },
-  { varName:'json_132KVGUNROCK33KVKIMS_56', type:'points', feeder:'GUNROCK → KIMS', cable:'UG' },
-  { varName:'json_132KVGUNROCK33KVKIMS_AB_Switch_57', type:'ab', feeder:'GUNROCK → KIMS', cable:'UG' },
-  { varName:'json_132KVGUNROCK33KVKIMS_Double_Pole_Structure_58',type:'dp', feeder:'GUNROCK → KIMS', cable:'UG' },
-  { varName:'json_132KVGUNROCK33KVKIMS_Cut_Points_59', type:'cut', feeder:'GUNROCK → KIMS', cable:'UG' },
-  { varName:'json_132KVGUNROCK33KVKIMS_Feeder_Lines_60', type:'lines', feeder:'GUNROCK → KIMS', cable:'UG' },
-  { varName:'json_132KVGUNROCK33KVJAMESSTREET_61', type:'points', feeder:'GUNROCK → JAMESSTREET', cable:'UG' },
-  { varName:'json_132KVGUNROCK33KVJAMESSTREET_AB_Switch_62', type:'ab', feeder:'GUNROCK → JAMESSTREET', cable:'UG' },
-  { varName:'json_132KVGUNROCK33KVJAMESSTREET_Double_Pole_Structure_63',type:'dp', feeder:'GUNROCK → JAMESSTREET', cable:'UG' },
-  { varName:'json_132KVGUNROCK33KVJAMESSTREET_Cut_Points_64', type:'cut', feeder:'GUNROCK → JAMESSTREET', cable:'UG' },
-  { varName:'json_132KVGUNROCK33KVJAMESSTREET_Feeder_Lines_65', type:'lines', feeder:'GUNROCK → JAMESSTREET', cable:'UG' },
-  { varName:'json_132KVCHILKALGUDA33KVPATIGADDA_66', type:'points', feeder:'CHILKALGUDA → PATIGADDA', cable:'UG' },
-  { varName:'json_132KVCHILKALGUDA33KVPATIGADDA_AB_Switch_67', type:'ab', feeder:'CHILKALGUDA → PATIGADDA', cable:'UG' },
-  { varName:'json_132KVCHILKALGUDA33KVPATIGADDA_Double_Pole_Structure_68',type:'dp', feeder:'CHILKALGUDA → PATIGADDA', cable:'UG' },
-  { varName:'json_132KVCHILKALGUDA33KVPATIGADDA_Cut_Points_69', type:'cut', feeder:'CHILKALGUDA → PATIGADDA', cable:'UG' },
-  { varName:'json_132KVCHILKALGUDA33KVPATIGADDA_Feeder_Lines_70', type:'lines', feeder:'CHILKALGUDA → PATIGADDA', cable:'UG' },
-  { varName:'json_132KVCHILKALGUDA33KVCLOCKTOWER_71', type:'points', feeder:'CHILKALGUDA → CLOCK TOWER', cable:'UG' },
-  { varName:'json_132KVCHILKALGUDA33KVCLOCKTOWER_AB_Switch_72', type:'ab', feeder:'CHILKALGUDA → CLOCK TOWER', cable:'UG' },
-  { varName:'json_132KVCHILKALGUDA33KVCLOCKTOWER_Double_Pole_Structure_73',type:'dp', feeder:'CHILKALGUDA → CLOCK TOWER', cable:'UG' },
-  { varName:'json_132KVCHILKALGUDA33KVCLOCKTOWER_Cut_Points_74', type:'cut', feeder:'CHILKALGUDA → CLOCK TOWER', cable:'UG' },
-  { varName:'json_132KVCHILKALGUDA33KVCLOCKTOWER_Feeder_Lines_75', type:'lines', feeder:'CHILKALGUDA → CLOCK TOWER', cable:'UG' },
-  { varName:'json_3311KVSSCOORDINATESWITHDATA20_76', type:'ss33', feeder:'33/11KV SS', cable:'-' },
-  { varName:'json_SS_WEB_INTERACT_77', type:'ss33i', feeder:'33/11KV SS (Interactive)', cable:'-' },
-  { varName:'json_FeederPoles_78', type:'fpoles', feeder:'Feeder Poles', cable:'UG' },
-  { varName:'json_Feeder_Segments_WEB_INTERACT_79', type:'fsegi', feeder:'Feeder Segments', cable:'-' },
-  { varName:'json_Feeder_Segments_WEB_DISPLAY_80', type:'fsegd', feeder:'Feeder Segments Display', cable:'-' },
-  { varName:'json_EHTSSCOORDINATESWITHDATA_82', type:'ehts', feeder:'EHT SS', cable:'-' },
-  { varName:'json_SS_WEB_INTERACT_83', type:'ehtsi', feeder:'EHT SS (Interactive)', cable:'-' },
+  // ── 33KV PRAGATOOLS SOURCE ──
+  { varName:'json_33KVPRAGATOOLSPragatoolshtservice_1',                        type:'points', feeder:'PRAGATOOLS → PRAGATOOLS HT SERVICE',   cable:'OH' },
+  { varName:'json_33KVPRAGATOOLSPragatoolshtservice_AB_Switch_2',              type:'ab',     feeder:'PRAGATOOLS → PRAGATOOLS HT SERVICE',   cable:'OH' },
+  { varName:'json_33KVPRAGATOOLSPragatoolshtservice_Double_Pole_Structure_3',  type:'dp',     feeder:'PRAGATOOLS → PRAGATOOLS HT SERVICE',   cable:'OH' },
+  { varName:'json_33KVPRAGATOOLSPragatoolshtservice_Cut_Points_4',             type:'cut',    feeder:'PRAGATOOLS → PRAGATOOLS HT SERVICE',   cable:'OH' },
+  { varName:'json_33KVPRAGATOOLSPragatoolshtservice_Feeder_Lines_5',           type:'lines',  feeder:'PRAGATOOLS → PRAGATOOLS HT SERVICE',   cable:'OH' },
+  { varName:'json_33KVPRAGATOOLSMalthorahtservice_6',                          type:'points', feeder:'PRAGATOOLS → MALTHORA HT SERVICE',     cable:'OH' },
+  { varName:'json_33KVPRAGATOOLSMalthorahtservice_AB_Switch_7',                type:'ab',     feeder:'PRAGATOOLS → MALTHORA HT SERVICE',     cable:'OH' },
+  { varName:'json_33KVPRAGATOOLSMalthorahtservice_Double_Pole_Structure_8',    type:'dp',     feeder:'PRAGATOOLS → MALTHORA HT SERVICE',     cable:'OH' },
+  { varName:'json_33KVPRAGATOOLSMalthorahtservice_Cut_Points_9',               type:'cut',    feeder:'PRAGATOOLS → MALTHORA HT SERVICE',     cable:'OH' },
+  { varName:'json_33KVPRAGATOOLSMalthorahtservice_Feeder_Lines_10',            type:'lines',  feeder:'PRAGATOOLS → MALTHORA HT SERVICE',     cable:'OH' },
+  // ── 33KV IDPL SOURCE ──
+  { varName:'json_33KVIDPL33KVPRASHANTHNAGAR_11',                              type:'points', feeder:'IDPL → PRASHANTHNAGAR',                cable:'UG' },
+  { varName:'json_33KVIDPL33KVPRASHANTHNAGAR_AB_Switch_12',                    type:'ab',     feeder:'IDPL → PRASHANTHNAGAR',                cable:'UG' },
+  { varName:'json_33KVIDPL33KVPRASHANTHNAGAR_Double_Pole_Structure_13',        type:'dp',     feeder:'IDPL → PRASHANTHNAGAR',                cable:'UG' },
+  { varName:'json_33KVIDPL33KVPRASHANTHNAGAR_Cut_Points_14',                   type:'cut',    feeder:'IDPL → PRASHANTHNAGAR',                cable:'UG' },
+  { varName:'json_33KVIDPL33KVPRASHANTHNAGAR_Feeder_Lines_15',                 type:'lines',  feeder:'IDPL → PRASHANTHNAGAR',                cable:'UG' },
+  // ── 33KV HAL SOURCE ──
+  { varName:'json_33KVHALHALHTservice_16',                                     type:'points', feeder:'HAL → HAL HT SERVICE',                 cable:'OH' },
+  { varName:'json_33KVHALHALHTservice_AB_Switch_17',                           type:'ab',     feeder:'HAL → HAL HT SERVICE',                 cable:'OH' },
+  { varName:'json_33KVHALHALHTservice_Double_Pole_Structure_18',               type:'dp',     feeder:'HAL → HAL HT SERVICE',                 cable:'OH' },
+  { varName:'json_33KVHALHALHTservice_Cut_Points_19',                          type:'cut',    feeder:'HAL → HAL HT SERVICE',                 cable:'OH' },
+  { varName:'json_33KVHALHALHTservice_Feeder_Lines_20',                        type:'lines',  feeder:'HAL → HAL HT SERVICE',                 cable:'OH' },
+  { varName:'json_33KVHALBHELRDHTservice_21',                                  type:'points', feeder:'HAL → BHELRD HT SERVICE',              cable:'OH' },
+  { varName:'json_33KVHALBHELRDHTservice_AB_Switch_22',                        type:'ab',     feeder:'HAL → BHELRD HT SERVICE',              cable:'OH' },
+  { varName:'json_33KVHALBHELRDHTservice_Double_Pole_Structure_23',            type:'dp',     feeder:'HAL → BHELRD HT SERVICE',              cable:'OH' },
+  { varName:'json_33KVHALBHELRDHTservice_Cut_Points_24',                       type:'cut',    feeder:'HAL → BHELRD HT SERVICE',              cable:'OH' },
+  { varName:'json_33KVHALBHELRDHTservice_Feeder_Lines_25',                     type:'lines',  feeder:'HAL → BHELRD HT SERVICE',              cable:'OH' },
+  // ── 220KV SHAPURNAGAR SOURCE ──
+  { varName:'json_220KVSHAPURNAGAR33KVJAGADGIRIGUTTAPRAGATOOLS_26',            type:'points', feeder:'SHAPURNAGAR → JAGADGIRIGUTTA PRAGATOOLS', cable:'UG' },
+  { varName:'json_220KVSHAPURNAGAR33KVJAGADGIRIGUTTAPRAGATOOLS_AB_Switch_27',  type:'ab',     feeder:'SHAPURNAGAR → JAGADGIRIGUTTA PRAGATOOLS', cable:'UG' },
+  { varName:'json_220KVSHAPURNAGAR33KVJAGADGIRIGUTTAPRAGATOOLS_Double_Pole_Structure_28', type:'dp', feeder:'SHAPURNAGAR → JAGADGIRIGUTTA PRAGATOOLS', cable:'UG' },
+  { varName:'json_220KVSHAPURNAGAR33KVJAGADGIRIGUTTAPRAGATOOLS_Cut_Points_29', type:'cut',    feeder:'SHAPURNAGAR → JAGADGIRIGUTTA PRAGATOOLS', cable:'UG' },
+  { varName:'json_220KVSHAPURNAGAR33KVJAGADGIRIGUTTAPRAGATOOLS_Feeder_Lines_30', type:'lines', feeder:'SHAPURNAGAR → JAGADGIRIGUTTA PRAGATOOLS', cable:'UG' },
+  { varName:'json_220KVSHAPURNAGAR33KVIDPL_31',                                type:'points', feeder:'SHAPURNAGAR → IDPL',                   cable:'UG' },
+  { varName:'json_220KVSHAPURNAGAR33KVIDPL_AB_Switch_32',                      type:'ab',     feeder:'SHAPURNAGAR → IDPL',                   cable:'UG' },
+  { varName:'json_220KVSHAPURNAGAR33KVIDPL_Double_Pole_Structure_33',          type:'dp',     feeder:'SHAPURNAGAR → IDPL',                   cable:'UG' },
+  { varName:'json_220KVSHAPURNAGAR33KVIDPL_Cut_Points_34',                     type:'cut',    feeder:'SHAPURNAGAR → IDPL',                   cable:'UG' },
+  { varName:'json_220KVSHAPURNAGAR33KVIDPL_Feeder_Lines_35',                   type:'lines',  feeder:'SHAPURNAGAR → IDPL',                   cable:'UG' },
+  { varName:'json_220KVSHAPURNAGAR33KVHMT_36',                                 type:'points', feeder:'SHAPURNAGAR → HMT',                    cable:'UG' },
+  { varName:'json_220KVSHAPURNAGAR33KVHMT_AB_Switch_37',                       type:'ab',     feeder:'SHAPURNAGAR → HMT',                    cable:'UG' },
+  { varName:'json_220KVSHAPURNAGAR33KVHMT_Double_Pole_Structure_38',           type:'dp',     feeder:'SHAPURNAGAR → HMT',                    cable:'UG' },
+  { varName:'json_220KVSHAPURNAGAR33KVHMT_Cut_Points_39',                      type:'cut',    feeder:'SHAPURNAGAR → HMT',                    cable:'UG' },
+  { varName:'json_220KVSHAPURNAGAR33KVHMT_Feeder_Lines_40',                    type:'lines',  feeder:'SHAPURNAGAR → HMT',                    cable:'UG' },
+  // ── 132KV ERRAGADDA SOURCE ──
+  { varName:'json_132KVERRAGADDA33KVKUKATPALLY_41',                            type:'points', feeder:'ERRAGADDA → KUKATPALLY',               cable:'UG' },
+  { varName:'json_132KVERRAGADDA33KVKUKATPALLY_AB_Switch_42',                  type:'ab',     feeder:'ERRAGADDA → KUKATPALLY',               cable:'UG' },
+  { varName:'json_132KVERRAGADDA33KVKUKATPALLY_Double_Pole_Structure_43',      type:'dp',     feeder:'ERRAGADDA → KUKATPALLY',               cable:'UG' },
+  { varName:'json_132KVERRAGADDA33KVKUKATPALLY_Cut_Points_44',                 type:'cut',    feeder:'ERRAGADDA → KUKATPALLY',               cable:'UG' },
+  { varName:'json_132KVERRAGADDA33KVKUKATPALLY_Feeder_Lines_45',               type:'lines',  feeder:'ERRAGADDA → KUKATPALLY',               cable:'UG' },
+  // ── 132KV IDPL SOURCE ──
+  { varName:'json_132KVIDPL33KVPRASHANTHNAGAR_46',                             type:'points', feeder:'IDPL (132KV) → PRASHANTHNAGAR',        cable:'UG' },
+  { varName:'json_132KVIDPL33KVPRASHANTHNAGAR_AB_Switch_47',                   type:'ab',     feeder:'IDPL (132KV) → PRASHANTHNAGAR',        cable:'UG' },
+  { varName:'json_132KVIDPL33KVPRASHANTHNAGAR_Double_Pole_Structure_48',       type:'dp',     feeder:'IDPL (132KV) → PRASHANTHNAGAR',        cable:'UG' },
+  { varName:'json_132KVIDPL33KVPRASHANTHNAGAR_Cut_Points_49',                  type:'cut',    feeder:'IDPL (132KV) → PRASHANTHNAGAR',        cable:'UG' },
+  { varName:'json_132KVIDPL33KVPRASHANTHNAGAR_Feeder_Lines_50',                type:'lines',  feeder:'IDPL (132KV) → PRASHANTHNAGAR',        cable:'UG' },
+  { varName:'json_132KVIDPL33KVPRAGATOOLS_51',                                 type:'points', feeder:'IDPL (132KV) → PRAGATOOLS',            cable:'UG' },
+  { varName:'json_132KVIDPL33KVPRAGATOOLS_AB_Switch_52',                       type:'ab',     feeder:'IDPL (132KV) → PRAGATOOLS',            cable:'UG' },
+  { varName:'json_132KVIDPL33KVPRAGATOOLS_Double_Pole_Structure_53',           type:'dp',     feeder:'IDPL (132KV) → PRAGATOOLS',            cable:'UG' },
+  { varName:'json_132KVIDPL33KVPRAGATOOLS_Cut_Points_54',                      type:'cut',    feeder:'IDPL (132KV) → PRAGATOOLS',            cable:'UG' },
+  { varName:'json_132KVIDPL33KVPRAGATOOLS_Feeder_Lines_55',                    type:'lines',  feeder:'IDPL (132KV) → PRAGATOOLS',            cable:'UG' },
+  { varName:'json_132KVIDPL33KVIDPLI_56',                                      type:'points', feeder:'IDPL (132KV) → IDPL-I',                cable:'UG' },
+  { varName:'json_132KVIDPL33KVIDPLI_AB_Switch_57',                            type:'ab',     feeder:'IDPL (132KV) → IDPL-I',                cable:'UG' },
+  { varName:'json_132KVIDPL33KVIDPLI_Double_Pole_Structure_58',                type:'dp',     feeder:'IDPL (132KV) → IDPL-I',                cable:'UG' },
+  { varName:'json_132KVIDPL33KVIDPLI_Cut_Points_59',                           type:'cut',    feeder:'IDPL (132KV) → IDPL-I',                cable:'UG' },
+  { varName:'json_132KVIDPL33KVIDPLI_Feeder_Lines_60',                         type:'lines',  feeder:'IDPL (132KV) → IDPL-I',                cable:'UG' },
+  { varName:'json_132KVIDPL33KVIDPL2_61',                                      type:'points', feeder:'IDPL (132KV) → IDPL-II',               cable:'UG' },
+  { varName:'json_132KVIDPL33KVIDPL2_AB_Switch_62',                            type:'ab',     feeder:'IDPL (132KV) → IDPL-II',               cable:'UG' },
+  { varName:'json_132KVIDPL33KVIDPL2_Double_Pole_Structure_63',                type:'dp',     feeder:'IDPL (132KV) → IDPL-II',               cable:'UG' },
+  { varName:'json_132KVIDPL33KVIDPL2_Cut_Points_64',                           type:'cut',    feeder:'IDPL (132KV) → IDPL-II',               cable:'UG' },
+  { varName:'json_132KVIDPL33KVIDPL2_Feeder_Lines_65',                         type:'lines',  feeder:'IDPL (132KV) → IDPL-II',               cable:'UG' },
+  // ── 132KV ERRAGADA SOURCE ──
+  { varName:'json_132KVERRAGADAIDPLIIISyntheticDrugs_66',                      type:'points', feeder:'ERRAGADA → IDPL-III SYNTHETIC DRUGS',  cable:'UG' },
+  { varName:'json_132KVERRAGADAIDPLIIISyntheticDrugs_AB_Switch_67',            type:'ab',     feeder:'ERRAGADA → IDPL-III SYNTHETIC DRUGS',  cable:'UG' },
+  { varName:'json_132KVERRAGADAIDPLIIISyntheticDrugs_Double_Pole_Structure_68',type:'dp',     feeder:'ERRAGADA → IDPL-III SYNTHETIC DRUGS',  cable:'UG' },
+  { varName:'json_132KVERRAGADAIDPLIIISyntheticDrugs_Cut_Points_69',           type:'cut',    feeder:'ERRAGADA → IDPL-III SYNTHETIC DRUGS',  cable:'UG' },
+  { varName:'json_132KVERRAGADAIDPLIIISyntheticDrugs_Feeder_Lines_70',         type:'lines',  feeder:'ERRAGADA → IDPL-III SYNTHETIC DRUGS',  cable:'UG' },
+  { varName:'json_132KVERRAGADA33KVMOHTINAGAR_71',                             type:'points', feeder:'ERRAGADA → MOHTINAGAR',                cable:'OH' },
+  { varName:'json_132KVERRAGADA33KVMOHTINAGAR_AB_Switch_72',                   type:'ab',     feeder:'ERRAGADA → MOHTINAGAR',                cable:'OH' },
+  { varName:'json_132KVERRAGADA33KVMOHTINAGAR_Double_Pole_Structure_73',       type:'dp',     feeder:'ERRAGADA → MOHTINAGAR',                cable:'OH' },
+  { varName:'json_132KVERRAGADA33KVMOHTINAGAR_Cut_Points_74',                  type:'cut',    feeder:'ERRAGADA → MOHTINAGAR',                cable:'OH' },
+  { varName:'json_132KVERRAGADA33KVMOHTINAGAR_Feeder_Lines_75',                type:'lines',  feeder:'ERRAGADA → MOHTINAGAR',                cable:'OH' },
+  { varName:'json_132KVERRAGADA33KVGLASSFACTORY_76',                           type:'points', feeder:'ERRAGADA → GLASS FACTORY',             cable:'OH' },
+  { varName:'json_132KVERRAGADA33KVGLASSFACTORY_AB_Switch_77',                 type:'ab',     feeder:'ERRAGADA → GLASS FACTORY',             cable:'OH' },
+  { varName:'json_132KVERRAGADA33KVGLASSFACTORY_Double_Pole_Structure_78',     type:'dp',     feeder:'ERRAGADA → GLASS FACTORY',             cable:'OH' },
+  { varName:'json_132KVERRAGADA33KVGLASSFACTORY_Cut_Points_79',                type:'cut',    feeder:'ERRAGADA → GLASS FACTORY',             cable:'OH' },
+  { varName:'json_132KVERRAGADA33KVGLASSFACTORY_Feeder_Lines_80',              type:'lines',  feeder:'ERRAGADA → GLASS FACTORY',             cable:'OH' },
+  { varName:'json_132KVERRAGADA33KVBORABANDA_81',                              type:'points', feeder:'ERRAGADA → BORABANDA',                 cable:'OH' },
+  { varName:'json_132KVERRAGADA33KVBORABANDA_AB_Switch_82',                    type:'ab',     feeder:'ERRAGADA → BORABANDA',                 cable:'OH' },
+  { varName:'json_132KVERRAGADA33KVBORABANDA_Double_Pole_Structure_83',        type:'dp',     feeder:'ERRAGADA → BORABANDA',                 cable:'OH' },
+  { varName:'json_132KVERRAGADA33KVBORABANDA_Cut_Points_84',                   type:'cut',    feeder:'ERRAGADA → BORABANDA',                 cable:'OH' },
+  { varName:'json_132KVERRAGADA33KVBORABANDA_Feeder_Lines_85',                 type:'lines',  feeder:'ERRAGADA → BORABANDA',                 cable:'OH' },
+  // ── 132KV CHINTAL SOURCE ──
+  { varName:'json_132KVCHINTAL33KVHMT_86',                                     type:'points', feeder:'CHINTAL → HMT',                        cable:'OH' },
+  { varName:'json_132KVCHINTAL33KVHMT_AB_Switch_87',                           type:'ab',     feeder:'CHINTAL → HMT',                        cable:'OH' },
+  { varName:'json_132KVCHINTAL33KVHMT_Double_Pole_Structure_88',               type:'dp',     feeder:'CHINTAL → HMT',                        cable:'OH' },
+  { varName:'json_132KVCHINTAL33KVHMT_Cut_Points_89',                          type:'cut',    feeder:'CHINTAL → HMT',                        cable:'OH' },
+  { varName:'json_132KVCHINTAL33KVHMT_Feeder_Lines_90',                        type:'lines',  feeder:'CHINTAL → HMT',                        cable:'OH' },
+  { varName:'json_132KVCHINTAL33KVHAL_91',                                     type:'points', feeder:'CHINTAL → HAL',                        cable:'OH' },
+  { varName:'json_132KVCHINTAL33KVHAL_AB_Switch_92',                           type:'ab',     feeder:'CHINTAL → HAL',                        cable:'OH' },
+  { varName:'json_132KVCHINTAL33KVHAL_Double_Pole_Structure_93',               type:'dp',     feeder:'CHINTAL → HAL',                        cable:'OH' },
+  { varName:'json_132KVCHINTAL33KVHAL_Cut_Points_94',                          type:'cut',    feeder:'CHINTAL → HAL',                        cable:'OH' },
+  { varName:'json_132KVCHINTAL33KVHAL_Feeder_Lines_95',                        type:'lines',  feeder:'CHINTAL → HAL',                        cable:'OH' },
+  // ── COMMON LAYERS ──
+  { varName:'json_Feeder_Segments_WEB_DISPLAY_97',    type:'fsegd',  feeder:'Feeder Segments Display', cable:'-' },
+  { varName:'json_Feeder_Segments_WEB_INTERACT_98',   type:'fsegi',  feeder:'Feeder Segments',         cable:'-' },
+  { varName:'json_FeederPoles_99',                    type:'fpoles', feeder:'Feeder Poles',            cable:'UG' },
+  { varName:'json_3311KVSSCOORDINATESWITHDATA20_100', type:'ss33',   feeder:'33/11KV SS',              cable:'-' },
+  { varName:'json_SS_WEB_INTERACT_101',               type:'ss33i',  feeder:'33/11KV SS (Interactive)',cable:'-' },
+  { varName:'json_EHTSSCOORDINATESWITHDATA_102',      type:'ehts',   feeder:'EHT SS',                  cable:'-' },
+  { varName:'json_SS_WEB_INTERACT_103',               type:'ehtsi',  feeder:'EHT SS (Interactive)',    cable:'-' },
 ];
 
 // ══════════════════════════════════════════════════
 // DATA PROCESSING
 // ══════════════════════════════════════════════════
 
-// Pass 1: Build the authoritative Master Feeder List purely from base lines
+// Pass 1: Build authoritative Master Feeder List
 DATA_REGISTRY.forEach(reg => {
   try {
     const data = window[reg.varName];
@@ -771,7 +799,7 @@ DATA_REGISTRY.forEach(reg => {
   } catch(e){}
 });
 
-// Pass 2: Physically render and smartly bind all elements
+// Pass 2: Render and smartly bind all elements
 DATA_REGISTRY.forEach(reg => {
   try {
   const data = window[reg.varName];
@@ -780,30 +808,30 @@ DATA_REGISTRY.forEach(reg => {
   data.features.forEach(feat => {
     try {
     const props = feat.properties || {};
-    
+
     let cableType = String(props['Type of Feeder'] || props['Feeder_Type'] || props['Feeder Type'] || reg.cable || '').trim().toUpperCase();
     const isOH = (cableType === 'OH' || cableType === 'OVERHEAD');
     cableType = isOH ? 'OH' : 'UG';
 
     const rawFeederName = props['Feeder Name'] || reg.feeder;
-    const feederName = extractFeeder(props, rawFeederName); // Smart Bind
+    const feederName = extractFeeder(props, rawFeederName);
 
     let layer;
     let poleNoStr = null;
 
     if(reg.type==='lines' || reg.type.startsWith('fseg')){
-      if(feat.geometry.type==='LineString'||feat.geometry.type==='MultiLineString'){
+      if(feat.geometry && (feat.geometry.type==='LineString'||feat.geometry.type==='MultiLineString')){
         const coords = feat.geometry.type==='LineString'
           ? feat.geometry.coordinates.map(c=>[c[1],c[0]])
           : feat.geometry.coordinates.map(ls=>ls.map(c=>[c[1],c[0]]));
-          
-        let color = isOH ? '#f44336' : '#2196f3'; 
+
+        let color = isOH ? '#f44336' : '#2196f3';
         let cStatus = feederStatus[feederName] || 'live';
-        
+
         let customClass = cStatus === 'breakdown' ? 'feeder-breakdown' : '';
         layer = L.polyline(feat.geometry.type==='LineString'?coords:coords[0],
           {color: color, weight: 6, opacity: 0.9, smoothFactor:1.5, className: customClass});
-          
+
         let flowClass = 'feeder-flow-overlay' + (cStatus !== 'live' ? ' hidden-flow' : '');
         layer.flowLayer = L.polyline(feat.geometry.type==='LineString'?coords:coords[0], {
             color: '#ffffff', weight: 3, className: flowClass,
@@ -828,15 +856,13 @@ DATA_REGISTRY.forEach(reg => {
     else if(feat.geometry && (feat.geometry.type==='Point' || feat.geometry.type==='MultiPoint')){
       const coords = feat.geometry.type==='Point' ? feat.geometry.coordinates : feat.geometry.coordinates[0];
       const ll = [coords[1],coords[0]];
-      
-      // CRITICAL FIX: pane: 'pointsPane' forces ALL points/poles safely ABOVE lines
+
       if(reg.type==='points' || reg.type==='fpoles'){
         layer = L.circleMarker(ll, {radius: 4, fillColor: '#ffffff', fillOpacity: 1, color: '#2196f3', weight: 2, pane: 'pointsPane'});
       } else if(reg.type==='cut'){
         layer = L.circleMarker(ll, {radius: 4, fillColor: '#ffffff', fillOpacity: 1, color: '#000000', weight: 2, pane: 'pointsPane'});
-      } 
-      else if(reg.type==='ab' || reg.type==='dp'){
-        layer=L.marker(ll,{icon:mkIcon('#ffff00','#000000','square'), pane: 'pointsPane'}); 
+      } else if(reg.type==='ab' || reg.type==='dp'){
+        layer=L.marker(ll,{icon:mkIcon('#ffff00','#000000','square'), pane: 'pointsPane'});
       } else if (reg.type.startsWith('ss33')) {
         const ss33Html = `<div class="ss33-wrap"><div class="ss33-ring"></div><div class="ss33-core"><span class="ss33-bolt">⚡</span></div></div>`;
         layer=L.marker(ll,{ zIndexOffset: 1000, icon:L.divIcon({className:'', html:ss33Html, iconSize:[36,36], iconAnchor:[18,18]})});
@@ -853,7 +879,7 @@ DATA_REGISTRY.forEach(reg => {
             if(!reg.type.startsWith('ss') && !reg.type.startsWith('eht')) {
                 poleNoStr = String(poleNo).trim();
             } else {
-                const ssName = String(poleNo).replace('33/11KV ','').replace('33/11KV','').replace('132 KV ','').replace('132KV ','').trim();
+                const ssName = String(poleNo).replace('33/11KV ','').replace('33/11KV','').replace('132 KV ','').replace('132KV ','').replace('220 KV ','').replace('220KV ','').trim();
                 layer.bindTooltip(ssName, {permanent:true, direction:'top', offset:[0,-16], className:'ss-label'});
             }
         }
@@ -882,8 +908,7 @@ function updateVisibility() {
 
     const typeIsOn = LGstate[t] !== false;
     const isSubstation = (t === 'ss33' || t === 'ehts');
-    
-    // Check perfectly bound name
+
     const fState = feederState[item.feederName];
     let feederIsOn = (fState !== undefined) ? (fState !== false) : globalFeederFallback;
     if (isSubstation) feederIsOn = true;
@@ -924,7 +949,7 @@ function popup(feat, regEntry){
         let val = p[k];
         if (k.toLowerCase() === 'popup') {
             rows += `<tr><td colspan="2" style="white-space:pre-wrap; padding-top:8px; padding-bottom:8px; border-top: 1px solid #eee;"><strong>Notes:</strong><br>${val}</td></tr>`;
-            return; 
+            return;
         }
         if(!isNaN(val) && val.toString().indexOf('.') !== -1 && !isNaN(parseFloat(val))) val = parseFloat(val).toFixed(3);
         if(k.toLowerCase().includes('length') || k.toLowerCase().includes('transitions')) val += ' km';
@@ -934,8 +959,8 @@ function popup(feat, regEntry){
   });
 
   const rawFn = p['Feeder Name'] || (regEntry && regEntry.feeder) || '';
-  const fn = extractFeeder(p, rawFn); 
-  
+  const fn = extractFeeder(p, rawFn);
+
   let statusBar = '';
   if(fn && (regEntry.type === 'lines' || (regEntry.type && regEntry.type.startsWith('fseg')))) {
     const cur = feederStatus[fn] || 'live';
@@ -966,7 +991,7 @@ function updateCounts() {
 
 const allCoords = [];
 allLayers.forEach(i => { if (i.reg.type === 'lines' && i.layer.getLatLngs) { const ll = i.layer.getLatLngs(); if(ll.length) allCoords.push(...ll.flat()); } });
-if(allCoords.length > 0){ try{ map.fitBounds(L.latLngBounds(allCoords),{padding:[60,60],maxZoom:17,animate:true}); }catch(e){} }
+if(allCoords.length > 0){ try{ map.fitBounds(L.latLngBounds(allCoords),{padding:[60,60],maxZoom:16,animate:true}); }catch(e){} }
 
 let focusedFeeder = null;
 
@@ -987,9 +1012,9 @@ function setFeederStatus(fn, status, btnEl) {
     if(!item.layer.setStyle) return;
     const isLine = item.reg.type === 'lines' || (item.reg.type && item.reg.type.startsWith('fseg'));
     if(!isLine) return;
-    
+
     const baseColor = item.cable === 'OH' ? '#f44336' : '#2196f3';
-    
+
     if(status === 'live') {
       item.layer.setStyle({color: baseColor, weight:6, opacity:0.9});
       safelyManageClass(item.layer, 'feeder-breakdown', false);
@@ -1047,10 +1072,10 @@ function focusFeeder(fn) {
     toast("Focus cleared");
     return;
   }
-  
+
   focusedFeeder = fn;
   const coords = [];
-  
+
   allLayers.forEach(i => {
     const isTarget = i.feederName === fn || i.reg.type.startsWith('ss') || i.reg.type.startsWith('eht');
     if(i.layer.setStyle && (i.reg.type === 'lines' || i.reg.type === 'fsegs')) {
@@ -1063,36 +1088,36 @@ function focusFeeder(fn) {
     } else if (i.layer.setOpacity) {
         i.layer.setOpacity(isTarget ? 1 : 0.2);
     }
-    
+
     if(i.feederName === fn && i.layer.getLatLngs) {
       const ll = i.layer.getLatLngs();
       if(ll.length) coords.push(...ll.flat());
     }
   });
-  
+
   if(coords.length > 0) map.flyToBounds(L.latLngBounds(coords), {padding:[50,50], animate:true, duration: 1.0});
   toast(`Focused on: ${fn.split('→')[1]?.trim() || fn}`);
 }
 
 function toggleSingleFeeder(fn, idx, e) {
-  e.stopPropagation(); 
+  e.stopPropagation();
   feederState[fn] = !feederState[fn];
   document.getElementById('ftog-'+idx).classList.toggle('off', !feederState[fn]);
   updateVisibility();
-  toast((feederState[fn] ? 'Showing ' : 'Hidden ') + fn.substring(0,15));
+  toast((feederState[fn] ? 'Showing ' : 'Hidden ') + fn.substring(0,20));
 }
 
 function buildFeederChecks(){
   const container = document.getElementById('feederChecks');
   if(!container) return;
   container.innerHTML = '';
-  const FCOLORS = ['#00c8ff','#ff9800','#00e676','#9c27b0','#2196f3','#f44336','#ffeb3b','#e91e63'];
-  
+  const FCOLORS = ['#00c8ff','#ff9800','#00e676','#9c27b0','#2196f3','#f44336','#ffeb3b','#e91e63','#4caf50','#ff5722'];
+
   [...feederNames].sort().forEach((fn,i)=>{
-    feederState[fn] = true; 
+    feederState[fn] = true;
     const color = FCOLORS[i % FCOLORS.length];
-    const short = fn.replace('→','→').substring(0,25); 
-    
+    const short = fn.replace('→','→').substring(0,28);
+
     const row = document.createElement('div');
     row.className = 'ftog-row';
     row.style.cssText = 'flex-wrap:wrap;gap:3px;padding:5px 6px;';
@@ -1113,7 +1138,7 @@ function buildFeederChecks(){
 }
 
 function toggleAllFeeders(show){
-  globalFeederFallback = show; 
+  globalFeederFallback = show;
   [...feederNames].forEach((fn,i)=>{
     feederState[fn] = show;
     const tog = document.getElementById('ftog-'+i);
@@ -1123,71 +1148,65 @@ function toggleAllFeeders(show){
   toast(show ? 'All feeders shown' : 'All feeders hidden');
 }
 
-function setCableFilter(f){
-  cableFilter=f;
-  document.querySelectorAll('#fp-all,#fp-ug,#fp-oh').forEach(p=>{
-    p.classList.remove('active'); p.style.background='transparent'; p.style.fontWeight='400';
-  });
-  document.getElementById('fp-'+f).classList.add('active');
-  document.getElementById('fp-'+f).style.background='rgba(0,200,255,.1)';
+function toggleLyr(key){
+  LGstate[key] = !LGstate[key];
+  document.getElementById('lyr-'+key).classList.toggle('off', !LGstate[key]);
   updateVisibility();
-  toast(f.toUpperCase()+' filter applied');
 }
 
-function toggleLyr(id){
-  LGstate[id] = !LGstate[id];
-  document.getElementById('lyr-'+id).classList.toggle('off', !LGstate[id]);
+function setCableFilter(v){
+  cableFilter = v;
+  ['all','ug','oh'].forEach(x=>{ document.getElementById('fp-'+x).classList.toggle('active',x===v); });
   updateVisibility();
-  toast(id.toUpperCase()+' layer '+(LGstate[id]?'ON':'OFF'));
+  toast(v==='all'?'Showing all cable types':v.toUpperCase()+' only');
 }
 
-let panelOpen=true;
 function togglePanel(){
-  panelOpen=!panelOpen;
-  document.getElementById('panel').classList.toggle('off',!panelOpen);
-  document.getElementById('ptab').classList.toggle('off',!panelOpen);
-  document.getElementById('ptab').textContent=panelOpen?'◀':'▶';
-  document.getElementById('legend').classList.toggle('shift',!panelOpen);
-  setTimeout(function(){ map.invalidateSize(); }, 350);
+  const p=document.getElementById('panel'), t=document.getElementById('ptab'), l=document.getElementById('legend');
+  p.classList.toggle('off');
+  t.classList.toggle('off');
+  t.textContent = p.classList.contains('off') ? '▶' : '◀';
+  if(l) l.classList.toggle('shift', p.classList.contains('off'));
+  map.invalidateSize();
 }
 
+// Panel resize drag
 (function(){
+  const resizer = document.getElementById('panel-resize');
   const panel = document.getElementById('panel');
-  const ptab  = document.getElementById('ptab');
-  const legend= document.getElementById('legend');
-  const handle = document.createElement('div');
-  handle.id = 'panel-resize';
-  panel.appendChild(handle);
-
-  let dragging=false, startX=0, startW=0;
-  handle.addEventListener('mousedown',e=>{
+  const ptab = document.getElementById('ptab');
+  let dragging = false, startX = 0, startW = 0;
+  resizer.addEventListener('mousedown', e=>{
     dragging=true; startX=e.clientX; startW=panel.offsetWidth;
-    handle.classList.add('dragging'); document.body.style.cursor='col-resize'; document.body.style.userSelect='none'; e.preventDefault();
+    resizer.classList.add('dragging');
+    document.body.style.cursor='col-resize'; document.body.style.userSelect='none';
   });
-  document.addEventListener('mousemove',e=>{
+  document.addEventListener('mousemove', e=>{
     if(!dragging) return;
-    const w = Math.min(800, Math.max(200, startW + e.clientX - startX));
-    panel.style.width = w+'px'; ptab.style.left = w+'px'; legend.style.left = (w+10)+'px'; map.invalidateSize();
+    const newW = Math.min(Math.max(startW+(e.clientX-startX), 200), 600);
+    panel.style.width=newW+'px';
+    ptab.style.left=newW+'px';
   });
-  document.addEventListener('mouseup',()=>{
-    if(!dragging) return;
-    dragging=false; handle.classList.remove('dragging'); document.body.style.cursor=''; document.body.style.userSelect='';
+  document.addEventListener('mouseup', ()=>{
+    if(dragging){ dragging=false; resizer.classList.remove('dragging'); document.body.style.cursor=''; document.body.style.userSelect=''; map.invalidateSize(); }
   });
 })();
 
-document.getElementById('srchInput').addEventListener('input', function(e){
-  const q=e.target.value.toLowerCase().trim();
-  if(!q||q.length<2) return;
+document.getElementById('srchInput').addEventListener('keydown', e => {
+  if(e.key !== 'Enter') return;
+  const q = e.target.value.trim().toLowerCase();
+  if(!q) return;
+
   const found = allLayers.find(i => {
     const p = i.layer.feature?.properties || i.layer.options || {};
     return JSON.stringify(p).toLowerCase().includes(q);
   });
-  
+
   if (found && found.layer.getLatLng) {
     const ll = found.layer.getLatLng();
     map.flyTo(ll, 19, {animate:true});
     if (found.layer.getPopup && found.layer.getPopup()) found.layer.openPopup();
-    
+
     const pingIcon = L.divIcon({className: 'radar-ping', iconSize: [0,0]});
     const pingMarker = L.marker(ll, {icon: pingIcon, zIndexOffset: 2000}).addTo(map);
     setTimeout(() => map.removeLayer(pingMarker), 5000);
@@ -1210,39 +1229,38 @@ function dismissLoader(){
   const ov=document.getElementById('loader');
   if(ov){ ov.classList.add('gone'); setTimeout(()=>ov.remove(),500); }
   map.invalidateSize();
-  
-  // ── DEFERRED SCRIPT (Mapped smartly) ──
+
+  // ── DEFERRED SCRIPT (Feeder Segments 96) ──
   setTimeout(()=>{
     const s=document.createElement('script');
-    s.src='data/Feeder_Segments_81.js';
+    s.src='data/Feeder_Segments_96.js';
     s.onload=()=>{
       try{
-        if(typeof json_Feeder_Segments_81!=='undefined' && json_Feeder_Segments_81.features){
-          json_Feeder_Segments_81.features.forEach(feat=>{
+        if(typeof json_Feeder_Segments_96!=='undefined' && json_Feeder_Segments_96.features){
+          json_Feeder_Segments_96.features.forEach(feat=>{
             try {
               if(!feat.geometry) return;
               const p = feat.properties || {};
-              
+
               let pairType = String(p['Pair_Type'] || p['Type of Feeder'] || p['Feeder_Type'] || p['Feeder Type'] || '').trim().toUpperCase();
               let isOH = (pairType === 'OH' || pairType === 'OVERHEAD');
               let isTRANS = (pairType === 'TRANS');
-              
-              let color = isOH ? '#f44336' : '#2196f3'; 
-              if (isTRANS) color = '#9c27b0'; 
+
+              let color = isOH ? '#f44336' : '#2196f3';
+              if (isTRANS) color = '#9c27b0';
               let segCable = isOH ? 'OH' : (isTRANS ? '-' : 'UG');
-              
+
               if(feat.geometry.type==='LineString'||feat.geometry.type==='MultiLineString'){
                 const coords=feat.geometry.type==='LineString' ? feat.geometry.coordinates.map(c=>[c[1],c[0]]) : feat.geometry.coordinates[0].map(c=>[c[1],c[0]]);
-                
-                // Mapped Feeder Name guarantees the segment hides/highlights correctly!
+
                 let rawFName = p['Feeder_Name'] || p['Name of the Feeder'] || 'Feeder Segments';
                 let fName = extractFeeder(p, rawFName);
-                
+
                 let cStatus = feederStatus[fName] || 'live';
                 let customClass = cStatus === 'breakdown' ? 'feeder-breakdown' : '';
-                
+
                 const layer = L.polyline(coords,{color: color, weight: 6, opacity: 0.9, className: customClass});
-                
+
                 let flowClass = 'feeder-flow-overlay' + (cStatus !== 'live' ? ' hidden-flow' : '');
                 layer.flowLayer = L.polyline(coords, {
                     color: '#ffffff', weight: 3, className: flowClass,
@@ -1250,7 +1268,7 @@ function dismissLoader(){
                 });
 
                 const regData = {type:'fsegs', feeder:'Feeder Segments', cable:'-'};
-                
+
                 layer.bindPopup(popup(feat, regData));
                 layer.on('popupopen', function(e) { e.popup.setContent(popup(feat, regData)); });
 
@@ -1263,7 +1281,7 @@ function dismissLoader(){
                     e.target.setStyle({weight:6, opacity: isFocused ? 0.15 : 0.9});
                     if(e.target.flowLayer) e.target.flowLayer.setStyle({weight: 3});
                 });
-                
+
                 allLayers.push({layer, reg: regData, feederName: fName, cable: segCable, poleNo: null});
                 if(!feederLayerMap[fName]) feederLayerMap[fName] = [];
                 feederLayerMap[fName].push({layer, reg: regData, cable: segCable});
@@ -1294,7 +1312,7 @@ setTimeout(()=>dismissLoader(), 5000);
 
 function syncLabels() {
   const z = map.getZoom();
-  const showPoleLabels = z >= 17; 
+  const showPoleLabels = z >= 17;
   const showSSLabels = z >= 13;
 
   allLayers.forEach(item => {
@@ -1319,7 +1337,7 @@ function syncLabels() {
         }
     }
   });
-  
+
   document.getElementById('zoomLvl').textContent = z;
 }
 map.on('zoomend', syncLabels);
