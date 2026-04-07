@@ -664,121 +664,123 @@ function extractFeeder(props, fallback) {
 }
 
 // ══════════════════════════════════════════════════
-// IDPL SECTION — DATA REGISTRY
+// AUTO-DISCOVERY ENGINE
+// Scans window for ALL json_* variables from the
+// loaded .js files — no hardcoded variable names needed
 // ══════════════════════════════════════════════════
-const DATA_REGISTRY = [
-  // ── 33KV PRAGATOOLS SOURCE ──
-  { varName:'json_33KVPRAGATOOLSPragatoolshtservice_1',                        type:'points', feeder:'PRAGATOOLS → PRAGATOOLS HT SERVICE',   cable:'OH' },
-  { varName:'json_33KVPRAGATOOLSPragatoolshtservice_AB_Switch_2',              type:'ab',     feeder:'PRAGATOOLS → PRAGATOOLS HT SERVICE',   cable:'OH' },
-  { varName:'json_33KVPRAGATOOLSPragatoolshtservice_Double_Pole_Structure_3',  type:'dp',     feeder:'PRAGATOOLS → PRAGATOOLS HT SERVICE',   cable:'OH' },
-  { varName:'json_33KVPRAGATOOLSPragatoolshtservice_Cut_Points_4',             type:'cut',    feeder:'PRAGATOOLS → PRAGATOOLS HT SERVICE',   cable:'OH' },
-  { varName:'json_33KVPRAGATOOLSPragatoolshtservice_Feeder_Lines_5',           type:'lines',  feeder:'PRAGATOOLS → PRAGATOOLS HT SERVICE',   cable:'OH' },
-  { varName:'json_33KVPRAGATOOLSMalthorahtservice_6',                          type:'points', feeder:'PRAGATOOLS → MALTHORA HT SERVICE',     cable:'OH' },
-  { varName:'json_33KVPRAGATOOLSMalthorahtservice_AB_Switch_7',                type:'ab',     feeder:'PRAGATOOLS → MALTHORA HT SERVICE',     cable:'OH' },
-  { varName:'json_33KVPRAGATOOLSMalthorahtservice_Double_Pole_Structure_8',    type:'dp',     feeder:'PRAGATOOLS → MALTHORA HT SERVICE',     cable:'OH' },
-  { varName:'json_33KVPRAGATOOLSMalthorahtservice_Cut_Points_9',               type:'cut',    feeder:'PRAGATOOLS → MALTHORA HT SERVICE',     cable:'OH' },
-  { varName:'json_33KVPRAGATOOLSMalthorahtservice_Feeder_Lines_10',            type:'lines',  feeder:'PRAGATOOLS → MALTHORA HT SERVICE',     cable:'OH' },
-  // ── 33KV IDPL SOURCE ──
-  { varName:'json_33KVIDPL33KVPRASHANTHNAGAR_11',                              type:'points', feeder:'IDPL → PRASHANTHNAGAR',                cable:'UG' },
-  { varName:'json_33KVIDPL33KVPRASHANTHNAGAR_AB_Switch_12',                    type:'ab',     feeder:'IDPL → PRASHANTHNAGAR',                cable:'UG' },
-  { varName:'json_33KVIDPL33KVPRASHANTHNAGAR_Double_Pole_Structure_13',        type:'dp',     feeder:'IDPL → PRASHANTHNAGAR',                cable:'UG' },
-  { varName:'json_33KVIDPL33KVPRASHANTHNAGAR_Cut_Points_14',                   type:'cut',    feeder:'IDPL → PRASHANTHNAGAR',                cable:'UG' },
-  { varName:'json_33KVIDPL33KVPRASHANTHNAGAR_Feeder_Lines_15',                 type:'lines',  feeder:'IDPL → PRASHANTHNAGAR',                cable:'UG' },
-  // ── 33KV HAL SOURCE ──
-  { varName:'json_33KVHALHALHTservice_16',                                     type:'points', feeder:'HAL → HAL HT SERVICE',                 cable:'OH' },
-  { varName:'json_33KVHALHALHTservice_AB_Switch_17',                           type:'ab',     feeder:'HAL → HAL HT SERVICE',                 cable:'OH' },
-  { varName:'json_33KVHALHALHTservice_Double_Pole_Structure_18',               type:'dp',     feeder:'HAL → HAL HT SERVICE',                 cable:'OH' },
-  { varName:'json_33KVHALHALHTservice_Cut_Points_19',                          type:'cut',    feeder:'HAL → HAL HT SERVICE',                 cable:'OH' },
-  { varName:'json_33KVHALHALHTservice_Feeder_Lines_20',                        type:'lines',  feeder:'HAL → HAL HT SERVICE',                 cable:'OH' },
-  { varName:'json_33KVHALBHELRDHTservice_21',                                  type:'points', feeder:'HAL → BHELRD HT SERVICE',              cable:'OH' },
-  { varName:'json_33KVHALBHELRDHTservice_AB_Switch_22',                        type:'ab',     feeder:'HAL → BHELRD HT SERVICE',              cable:'OH' },
-  { varName:'json_33KVHALBHELRDHTservice_Double_Pole_Structure_23',            type:'dp',     feeder:'HAL → BHELRD HT SERVICE',              cable:'OH' },
-  { varName:'json_33KVHALBHELRDHTservice_Cut_Points_24',                       type:'cut',    feeder:'HAL → BHELRD HT SERVICE',              cable:'OH' },
-  { varName:'json_33KVHALBHELRDHTservice_Feeder_Lines_25',                     type:'lines',  feeder:'HAL → BHELRD HT SERVICE',              cable:'OH' },
-  // ── 220KV SHAPURNAGAR SOURCE ──
-  { varName:'json_220KVSHAPURNAGAR33KVJAGADGIRIGUTTAPRAGATOOLS_26',            type:'points', feeder:'SHAPURNAGAR → JAGADGIRIGUTTA PRAGATOOLS', cable:'UG' },
-  { varName:'json_220KVSHAPURNAGAR33KVJAGADGIRIGUTTAPRAGATOOLS_AB_Switch_27',  type:'ab',     feeder:'SHAPURNAGAR → JAGADGIRIGUTTA PRAGATOOLS', cable:'UG' },
-  { varName:'json_220KVSHAPURNAGAR33KVJAGADGIRIGUTTAPRAGATOOLS_Double_Pole_Structure_28', type:'dp', feeder:'SHAPURNAGAR → JAGADGIRIGUTTA PRAGATOOLS', cable:'UG' },
-  { varName:'json_220KVSHAPURNAGAR33KVJAGADGIRIGUTTAPRAGATOOLS_Cut_Points_29', type:'cut',    feeder:'SHAPURNAGAR → JAGADGIRIGUTTA PRAGATOOLS', cable:'UG' },
-  { varName:'json_220KVSHAPURNAGAR33KVJAGADGIRIGUTTAPRAGATOOLS_Feeder_Lines_30', type:'lines', feeder:'SHAPURNAGAR → JAGADGIRIGUTTA PRAGATOOLS', cable:'UG' },
-  { varName:'json_220KVSHAPURNAGAR33KVIDPL_31',                                type:'points', feeder:'SHAPURNAGAR → IDPL',                   cable:'UG' },
-  { varName:'json_220KVSHAPURNAGAR33KVIDPL_AB_Switch_32',                      type:'ab',     feeder:'SHAPURNAGAR → IDPL',                   cable:'UG' },
-  { varName:'json_220KVSHAPURNAGAR33KVIDPL_Double_Pole_Structure_33',          type:'dp',     feeder:'SHAPURNAGAR → IDPL',                   cable:'UG' },
-  { varName:'json_220KVSHAPURNAGAR33KVIDPL_Cut_Points_34',                     type:'cut',    feeder:'SHAPURNAGAR → IDPL',                   cable:'UG' },
-  { varName:'json_220KVSHAPURNAGAR33KVIDPL_Feeder_Lines_35',                   type:'lines',  feeder:'SHAPURNAGAR → IDPL',                   cable:'UG' },
-  { varName:'json_220KVSHAPURNAGAR33KVHMT_36',                                 type:'points', feeder:'SHAPURNAGAR → HMT',                    cable:'UG' },
-  { varName:'json_220KVSHAPURNAGAR33KVHMT_AB_Switch_37',                       type:'ab',     feeder:'SHAPURNAGAR → HMT',                    cable:'UG' },
-  { varName:'json_220KVSHAPURNAGAR33KVHMT_Double_Pole_Structure_38',           type:'dp',     feeder:'SHAPURNAGAR → HMT',                    cable:'UG' },
-  { varName:'json_220KVSHAPURNAGAR33KVHMT_Cut_Points_39',                      type:'cut',    feeder:'SHAPURNAGAR → HMT',                    cable:'UG' },
-  { varName:'json_220KVSHAPURNAGAR33KVHMT_Feeder_Lines_40',                    type:'lines',  feeder:'SHAPURNAGAR → HMT',                    cable:'UG' },
-  // ── 132KV ERRAGADDA SOURCE ──
-  { varName:'json_132KVERRAGADDA33KVKUKATPALLY_41',                            type:'points', feeder:'ERRAGADDA → KUKATPALLY',               cable:'UG' },
-  { varName:'json_132KVERRAGADDA33KVKUKATPALLY_AB_Switch_42',                  type:'ab',     feeder:'ERRAGADDA → KUKATPALLY',               cable:'UG' },
-  { varName:'json_132KVERRAGADDA33KVKUKATPALLY_Double_Pole_Structure_43',      type:'dp',     feeder:'ERRAGADDA → KUKATPALLY',               cable:'UG' },
-  { varName:'json_132KVERRAGADDA33KVKUKATPALLY_Cut_Points_44',                 type:'cut',    feeder:'ERRAGADDA → KUKATPALLY',               cable:'UG' },
-  { varName:'json_132KVERRAGADDA33KVKUKATPALLY_Feeder_Lines_45',               type:'lines',  feeder:'ERRAGADDA → KUKATPALLY',               cable:'UG' },
-  // ── 132KV IDPL SOURCE ──
-  { varName:'json_132KVIDPL33KVPRASHANTHNAGAR_46',                             type:'points', feeder:'IDPL (132KV) → PRASHANTHNAGAR',        cable:'UG' },
-  { varName:'json_132KVIDPL33KVPRASHANTHNAGAR_AB_Switch_47',                   type:'ab',     feeder:'IDPL (132KV) → PRASHANTHNAGAR',        cable:'UG' },
-  { varName:'json_132KVIDPL33KVPRASHANTHNAGAR_Double_Pole_Structure_48',       type:'dp',     feeder:'IDPL (132KV) → PRASHANTHNAGAR',        cable:'UG' },
-  { varName:'json_132KVIDPL33KVPRASHANTHNAGAR_Cut_Points_49',                  type:'cut',    feeder:'IDPL (132KV) → PRASHANTHNAGAR',        cable:'UG' },
-  { varName:'json_132KVIDPL33KVPRASHANTHNAGAR_Feeder_Lines_50',                type:'lines',  feeder:'IDPL (132KV) → PRASHANTHNAGAR',        cable:'UG' },
-  { varName:'json_132KVIDPL33KVPRAGATOOLS_51',                                 type:'points', feeder:'IDPL (132KV) → PRAGATOOLS',            cable:'UG' },
-  { varName:'json_132KVIDPL33KVPRAGATOOLS_AB_Switch_52',                       type:'ab',     feeder:'IDPL (132KV) → PRAGATOOLS',            cable:'UG' },
-  { varName:'json_132KVIDPL33KVPRAGATOOLS_Double_Pole_Structure_53',           type:'dp',     feeder:'IDPL (132KV) → PRAGATOOLS',            cable:'UG' },
-  { varName:'json_132KVIDPL33KVPRAGATOOLS_Cut_Points_54',                      type:'cut',    feeder:'IDPL (132KV) → PRAGATOOLS',            cable:'UG' },
-  { varName:'json_132KVIDPL33KVPRAGATOOLS_Feeder_Lines_55',                    type:'lines',  feeder:'IDPL (132KV) → PRAGATOOLS',            cable:'UG' },
-  { varName:'json_132KVIDPL33KVIDPLI_56',                                      type:'points', feeder:'IDPL (132KV) → IDPL-I',                cable:'UG' },
-  { varName:'json_132KVIDPL33KVIDPLI_AB_Switch_57',                            type:'ab',     feeder:'IDPL (132KV) → IDPL-I',                cable:'UG' },
-  { varName:'json_132KVIDPL33KVIDPLI_Double_Pole_Structure_58',                type:'dp',     feeder:'IDPL (132KV) → IDPL-I',                cable:'UG' },
-  { varName:'json_132KVIDPL33KVIDPLI_Cut_Points_59',                           type:'cut',    feeder:'IDPL (132KV) → IDPL-I',                cable:'UG' },
-  { varName:'json_132KVIDPL33KVIDPLI_Feeder_Lines_60',                         type:'lines',  feeder:'IDPL (132KV) → IDPL-I',                cable:'UG' },
-  { varName:'json_132KVIDPL33KVIDPL2_61',                                      type:'points', feeder:'IDPL (132KV) → IDPL-II',               cable:'UG' },
-  { varName:'json_132KVIDPL33KVIDPL2_AB_Switch_62',                            type:'ab',     feeder:'IDPL (132KV) → IDPL-II',               cable:'UG' },
-  { varName:'json_132KVIDPL33KVIDPL2_Double_Pole_Structure_63',                type:'dp',     feeder:'IDPL (132KV) → IDPL-II',               cable:'UG' },
-  { varName:'json_132KVIDPL33KVIDPL2_Cut_Points_64',                           type:'cut',    feeder:'IDPL (132KV) → IDPL-II',               cable:'UG' },
-  { varName:'json_132KVIDPL33KVIDPL2_Feeder_Lines_65',                         type:'lines',  feeder:'IDPL (132KV) → IDPL-II',               cable:'UG' },
-  // ── 132KV ERRAGADA SOURCE ──
-  { varName:'json_132KVERRAGADAIDPLIIISyntheticDrugs_66',                      type:'points', feeder:'ERRAGADA → IDPL-III SYNTHETIC DRUGS',  cable:'UG' },
-  { varName:'json_132KVERRAGADAIDPLIIISyntheticDrugs_AB_Switch_67',            type:'ab',     feeder:'ERRAGADA → IDPL-III SYNTHETIC DRUGS',  cable:'UG' },
-  { varName:'json_132KVERRAGADAIDPLIIISyntheticDrugs_Double_Pole_Structure_68',type:'dp',     feeder:'ERRAGADA → IDPL-III SYNTHETIC DRUGS',  cable:'UG' },
-  { varName:'json_132KVERRAGADAIDPLIIISyntheticDrugs_Cut_Points_69',           type:'cut',    feeder:'ERRAGADA → IDPL-III SYNTHETIC DRUGS',  cable:'UG' },
-  { varName:'json_132KVERRAGADAIDPLIIISyntheticDrugs_Feeder_Lines_70',         type:'lines',  feeder:'ERRAGADA → IDPL-III SYNTHETIC DRUGS',  cable:'UG' },
-  { varName:'json_132KVERRAGADA33KVMOHTINAGAR_71',                             type:'points', feeder:'ERRAGADA → MOHTINAGAR',                cable:'OH' },
-  { varName:'json_132KVERRAGADA33KVMOHTINAGAR_AB_Switch_72',                   type:'ab',     feeder:'ERRAGADA → MOHTINAGAR',                cable:'OH' },
-  { varName:'json_132KVERRAGADA33KVMOHTINAGAR_Double_Pole_Structure_73',       type:'dp',     feeder:'ERRAGADA → MOHTINAGAR',                cable:'OH' },
-  { varName:'json_132KVERRAGADA33KVMOHTINAGAR_Cut_Points_74',                  type:'cut',    feeder:'ERRAGADA → MOHTINAGAR',                cable:'OH' },
-  { varName:'json_132KVERRAGADA33KVMOHTINAGAR_Feeder_Lines_75',                type:'lines',  feeder:'ERRAGADA → MOHTINAGAR',                cable:'OH' },
-  { varName:'json_132KVERRAGADA33KVGLASSFACTORY_76',                           type:'points', feeder:'ERRAGADA → GLASS FACTORY',             cable:'OH' },
-  { varName:'json_132KVERRAGADA33KVGLASSFACTORY_AB_Switch_77',                 type:'ab',     feeder:'ERRAGADA → GLASS FACTORY',             cable:'OH' },
-  { varName:'json_132KVERRAGADA33KVGLASSFACTORY_Double_Pole_Structure_78',     type:'dp',     feeder:'ERRAGADA → GLASS FACTORY',             cable:'OH' },
-  { varName:'json_132KVERRAGADA33KVGLASSFACTORY_Cut_Points_79',                type:'cut',    feeder:'ERRAGADA → GLASS FACTORY',             cable:'OH' },
-  { varName:'json_132KVERRAGADA33KVGLASSFACTORY_Feeder_Lines_80',              type:'lines',  feeder:'ERRAGADA → GLASS FACTORY',             cable:'OH' },
-  { varName:'json_132KVERRAGADA33KVBORABANDA_81',                              type:'points', feeder:'ERRAGADA → BORABANDA',                 cable:'OH' },
-  { varName:'json_132KVERRAGADA33KVBORABANDA_AB_Switch_82',                    type:'ab',     feeder:'ERRAGADA → BORABANDA',                 cable:'OH' },
-  { varName:'json_132KVERRAGADA33KVBORABANDA_Double_Pole_Structure_83',        type:'dp',     feeder:'ERRAGADA → BORABANDA',                 cable:'OH' },
-  { varName:'json_132KVERRAGADA33KVBORABANDA_Cut_Points_84',                   type:'cut',    feeder:'ERRAGADA → BORABANDA',                 cable:'OH' },
-  { varName:'json_132KVERRAGADA33KVBORABANDA_Feeder_Lines_85',                 type:'lines',  feeder:'ERRAGADA → BORABANDA',                 cable:'OH' },
-  // ── 132KV CHINTAL SOURCE ──
-  { varName:'json_132KVCHINTAL33KVHMT_86',                                     type:'points', feeder:'CHINTAL → HMT',                        cable:'OH' },
-  { varName:'json_132KVCHINTAL33KVHMT_AB_Switch_87',                           type:'ab',     feeder:'CHINTAL → HMT',                        cable:'OH' },
-  { varName:'json_132KVCHINTAL33KVHMT_Double_Pole_Structure_88',               type:'dp',     feeder:'CHINTAL → HMT',                        cable:'OH' },
-  { varName:'json_132KVCHINTAL33KVHMT_Cut_Points_89',                          type:'cut',    feeder:'CHINTAL → HMT',                        cable:'OH' },
-  { varName:'json_132KVCHINTAL33KVHMT_Feeder_Lines_90',                        type:'lines',  feeder:'CHINTAL → HMT',                        cable:'OH' },
-  { varName:'json_132KVCHINTAL33KVHAL_91',                                     type:'points', feeder:'CHINTAL → HAL',                        cable:'OH' },
-  { varName:'json_132KVCHINTAL33KVHAL_AB_Switch_92',                           type:'ab',     feeder:'CHINTAL → HAL',                        cable:'OH' },
-  { varName:'json_132KVCHINTAL33KVHAL_Double_Pole_Structure_93',               type:'dp',     feeder:'CHINTAL → HAL',                        cable:'OH' },
-  { varName:'json_132KVCHINTAL33KVHAL_Cut_Points_94',                          type:'cut',    feeder:'CHINTAL → HAL',                        cable:'OH' },
-  { varName:'json_132KVCHINTAL33KVHAL_Feeder_Lines_95',                        type:'lines',  feeder:'CHINTAL → HAL',                        cable:'OH' },
-  // ── COMMON LAYERS ──
-  { varName:'json_Feeder_Segments_WEB_DISPLAY_97',    type:'fsegd',  feeder:'Feeder Segments Display', cable:'-' },
-  { varName:'json_Feeder_Segments_WEB_INTERACT_98',   type:'fsegi',  feeder:'Feeder Segments',         cable:'-' },
-  { varName:'json_FeederPoles_99',                    type:'fpoles', feeder:'Feeder Poles',            cable:'UG' },
-  { varName:'json_3311KVSSCOORDINATESWITHDATA20_100', type:'ss33',   feeder:'33/11KV SS',              cable:'-' },
-  { varName:'json_SS_WEB_INTERACT_101',               type:'ss33i',  feeder:'33/11KV SS (Interactive)',cable:'-' },
-  { varName:'json_EHTSSCOORDINATESWITHDATA_102',      type:'ehts',   feeder:'EHT SS',                  cable:'-' },
-  { varName:'json_SS_WEB_INTERACT_103',               type:'ehtsi',  feeder:'EHT SS (Interactive)',    cable:'-' },
+
+// Feeder display name hints keyed on the "base" part of the variable name
+// (after stripping suffix like _AB_Switch_N, _Feeder_Lines_N etc.)
+// Format: rawBase (uppercase, no spaces) → display name
+const FEEDER_NAME_HINTS = {
+  '33KVPRAGATOOLSPRAGATOOLSHTSERVICE':    'PRAGATOOLS → PRAGATOOLS HT SERVICE',
+  '33KVPRAGATOOLSMALTHORAHTSERVICE':      'PRAGATOOLS → MALTHORA HT SERVICE',
+  '33KVIDPL33KVPRASHANTHNAGAR':           'IDPL → PRASHANTHNAGAR',
+  '33KVHALHALHTSERVICE':                  'HAL → HAL HT SERVICE',
+  '33KVHALBHELRDHTSERVICE':               'HAL → BHELRD HT SERVICE',
+  '220KVSHAPURNAGAR33KVJAGADGIRIGUTTAPRAGATOOLS': 'SHAPURNAGAR → JAGADGIRIGUTTA PRAGATOOLS',
+  '220KVSHAPURNAGAR33KVIDPL':             'SHAPURNAGAR → IDPL',
+  '220KVSHAPURNAGAR33KVHMT':              'SHAPURNAGAR → HMT',
+  '132KVERRAGADDA33KVKUKATPALLY':         'ERRAGADDA → KUKATPALLY',
+  '132KVIDPL33KVPRASHANTHNAGAR':          'IDPL (132KV) → PRASHANTHNAGAR',
+  '132KVIDPL33KVPRAGATOOLS':              'IDPL (132KV) → PRAGATOOLS',
+  '132KVIDPL33KVIDPLI':                   'IDPL (132KV) → IDPL-I',
+  '132KVIDPL33KVIDPL2':                   'IDPL (132KV) → IDPL-II',
+  '132KVERRAGADAIDPLIIISYNTHETHICDRUGS':  'ERRAGADA → IDPL-III SYNTHETIC DRUGS',
+  '132KVERRAGADAIDPLIIISYNTHETICDRUGS':   'ERRAGADA → IDPL-III SYNTHETIC DRUGS',
+  '132KVERRAGADA33KVMOHTINAGAR':          'ERRAGADA → MOHTINAGAR',
+  '132KVERRAGADA33KVGLASSFACTORY':        'ERRAGADA → GLASS FACTORY',
+  '132KVERRAGADA33KVBORABANDA':           'ERRAGADA → BORABANDA',
+  '132KVCHINTAL33KVHMT':                  'CHINTAL → HMT',
+  '132KVCHINTAL33KVHAL':                  'CHINTAL → HAL',
+};
+
+// OH feeder hint set (base key → true means OH, else UG)
+const OH_HINTS = new Set([
+  '33KVPRAGATOOLSPRAGATOOLSHTSERVICE',
+  '33KVPRAGATOOLSMALTHORAHTSERVICE',
+  '33KVHALHALHTSERVICE',
+  '33KVHALBHELRDHTSERVICE',
+  '132KVERRAGADA33KVMOHTINAGAR',
+  '132KVERRAGADA33KVGLASSFACTORY',
+  '132KVERRAGADA33KVBORABANDA',
+  '132KVCHINTAL33KVHMT',
+  '132KVCHINTAL33KVHAL',
+]);
+
+// Known SS / EHT / utility variable patterns (skip feeder naming for these)
+const SPECIAL_PATTERNS = [
+  { test: v => /3311KVSS/i.test(v) || /SSCOORDINATES/i.test(v),          type:'ss33'   },
+  { test: v => /SS_WEB_INTERACT_\d+$/.test(v) && !/EHT/i.test(v),        type:'ss33i'  },
+  { test: v => /EHTSS/i.test(v) || /EHTSSCOOR/i.test(v),                 type:'ehts'   },
+  { test: v => /SS_WEB_INTERACT/.test(v) && /EHT/i.test(v),              type:'ehtsi'  },
+  { test: v => /FeederPoles/i.test(v),                                    type:'fpoles' },
+  { test: v => /Feeder_Segments_WEB_DISPLAY/i.test(v),                    type:'fsegd'  },
+  { test: v => /Feeder_Segments_WEB_INTERACT/i.test(v),                   type:'fsegi'  },
+  { test: v => /Feeder_Segments/.test(v) && !/WEB/.test(v) && !/96/.test(v), type:'fsegd' },
 ];
+
+// Infer layer type from variable name suffix
+function inferType(varName) {
+  for(const sp of SPECIAL_PATTERNS) if(sp.test(varName)) return sp.type;
+  const u = varName.toUpperCase();
+  if (u.includes('_AB_SWITCH_') || u.includes('_ABSWITCH_'))          return 'ab';
+  if (u.includes('_DOUBLE_POLE_') || u.includes('_DOUBLEPOLE_'))       return 'dp';
+  if (u.includes('_CUT_POINT') || u.includes('_CUTPOINT'))             return 'cut';
+  if (u.includes('_FEEDER_LINE') || u.includes('_FEEDERLINE'))         return 'lines';
+  // Base file = points (no suffix)
+  return 'points';
+}
+
+// Strip suffix to get the base feeder key
+function getBaseKey(varName) {
+  // Remove json_ prefix
+  let s = varName.replace(/^json_/i, '');
+  // Remove trailing _AB_Switch_N, _Double_Pole_Structure_N, _Cut_Points_N, _Feeder_Lines_N, _N
+  s = s.replace(/_AB_Switch_\d+$/i, '')
+       .replace(/_Double_Pole_Structure_\d+$/i, '')
+       .replace(/_Cut_Points_\d+$/i, '')
+       .replace(/_Feeder_Lines_\d+$/i, '')
+       .replace(/_\d+$/, '');
+  return s.toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+// Lookup feeder display name from base key
+function lookupFeederName(baseKey) {
+  if(FEEDER_NAME_HINTS[baseKey]) return FEEDER_NAME_HINTS[baseKey];
+  // Fuzzy: try partial match
+  for(const k of Object.keys(FEEDER_NAME_HINTS)) {
+    if(baseKey.includes(k) || k.includes(baseKey)) return FEEDER_NAME_HINTS[k];
+  }
+  // Fallback: make readable from base key
+  return baseKey;
+}
+
+// Build DATA_REGISTRY dynamically from all window.json_* variables
+const DATA_REGISTRY = [];
+Object.keys(window).forEach(varName => {
+  if(!varName.startsWith('json_')) return;
+  const data = window[varName];
+  if(!data || !data.features) return;
+
+  const type     = inferType(varName);
+  const baseKey  = getBaseKey(varName);
+  const feeder   = (['ss33','ss33i','ehts','ehtsi'].includes(type))
+                   ? (type.startsWith('ss') ? '33/11KV SS' : 'EHT SS')
+                   : (['fpoles','fsegd','fsegi'].includes(type))
+                     ? 'Feeder Poles / Segments'
+                     : lookupFeederName(baseKey);
+  const cable    = OH_HINTS.has(baseKey) ? 'OH' : 'UG';
+
+  DATA_REGISTRY.push({ varName, type, feeder, cable });
+});
+
+// Sort by the trailing number so layers render in correct order
+DATA_REGISTRY.sort((a,b) => {
+  const na = parseInt(a.varName.match(/(\d+)$/)?.[1] || 0);
+  const nb = parseInt(b.varName.match(/(\d+)$/)?.[1] || 0);
+  return na - nb;
+});
 
 // ══════════════════════════════════════════════════
 // DATA PROCESSING
@@ -792,7 +794,7 @@ DATA_REGISTRY.forEach(reg => {
     data.features.forEach(feat => {
       const props = feat.properties || {};
       const fName = props['Feeder Name'] || reg.feeder;
-      if (!reg.type.startsWith('ss') && !reg.type.startsWith('eht') && !reg.type.startsWith('fseg') && fName !== 'Feeder Segments') {
+      if (!reg.type.startsWith('ss') && !reg.type.startsWith('eht') && !reg.type.startsWith('fseg') && reg.type !== 'fpoles' && fName !== 'Feeder Poles / Segments') {
           feederNames.add(fName.trim());
       }
     });
@@ -809,8 +811,9 @@ DATA_REGISTRY.forEach(reg => {
     try {
     const props = feat.properties || {};
 
-    let cableType = String(props['Type of Feeder'] || props['Feeder_Type'] || props['Feeder Type'] || reg.cable || '').trim().toUpperCase();
-    const isOH = (cableType === 'OH' || cableType === 'OVERHEAD');
+    let cableType = String(props['Type of Feeder'] || props['Feeder_Type'] || props['Feeder Type'] || '').trim().toUpperCase();
+    // If not in properties, fall back to the auto-detected cable from registry
+    const isOH = (cableType === 'OH' || cableType === 'OVERHEAD') || reg.cable === 'OH';
     cableType = isOH ? 'OH' : 'UG';
 
     const rawFeederName = props['Feeder Name'] || reg.feeder;
