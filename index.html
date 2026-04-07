@@ -786,18 +786,17 @@ DATA_REGISTRY.sort((a,b) => {
 // DATA PROCESSING
 // ══════════════════════════════════════════════════
 
-// Pass 1: Build authoritative Master Feeder List
+// Pass 1: Build authoritative Master Feeder List — LINES ONLY
+// Only 'lines' entries define the canonical feeder names.
+// Points, AB switches, DP structures, cut points are supporting data
+// and must never create duplicate panel rows.
 DATA_REGISTRY.forEach(reg => {
+  if (reg.type !== 'lines') return;
   try {
     const data = window[reg.varName];
     if(!data || !data.features) return;
-    data.features.forEach(feat => {
-      const props = feat.properties || {};
-      const fName = props['Feeder Name'] || reg.feeder;
-      if (!reg.type.startsWith('ss') && !reg.type.startsWith('eht') && !reg.type.startsWith('fseg') && reg.type !== 'fpoles' && fName !== 'Feeder Poles / Segments') {
-          feederNames.add(fName.trim());
-      }
-    });
+    // Use the registry feeder name directly — avoids property-level variance
+    feederNames.add(reg.feeder.trim());
   } catch(e){}
 });
 
@@ -817,7 +816,12 @@ DATA_REGISTRY.forEach(reg => {
     cableType = isOH ? 'OH' : 'UG';
 
     const rawFeederName = props['Feeder Name'] || reg.feeder;
-    const feederName = extractFeeder(props, rawFeederName);
+    // For non-line features (points/ab/dp/cut), bind directly to the
+    // registry feeder name so they always group under the correct parent.
+    // For lines, also try smart-extraction from properties.
+    const feederName = (reg.type === 'lines')
+      ? extractFeeder(props, rawFeederName)
+      : reg.feeder;
 
     let layer;
     let poleNoStr = null;
