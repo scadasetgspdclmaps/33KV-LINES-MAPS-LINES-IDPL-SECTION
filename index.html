@@ -144,7 +144,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--navy)}
   will-change:transform;transform:translateZ(0)
 }
 /* Smooth vector lines (canvas renderer paints crisp sub-pixel lines) */
-.leaflet-canvas-layer{image-rendering:crisp-edges}
+
 /* Zoom/pan pane: hardware layer for the whole map tile grid */
 .leaflet-map-pane{will-change:transform;transform:translateZ(0)}
 .leaflet-control-zoom{border:none!important;border-radius:10px!important;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.5)!important}
@@ -581,27 +581,13 @@ path.feeder-flow-overlay {
 // ══════════════════════════════════════════════════
 const map = L.map('map',{
   center:[17.4870, 78.4436], zoom:15, zoomControl:false,
-  // ── GOOGLE MAPS-LIKE SMOOTHNESS ──────────────────────
-  preferCanvas:true,             // GPU canvas renderer — no per-path DOM nodes
-  renderer: L.canvas({tolerance:12}),
-  zoomAnimation:true,
-  zoomAnimationThreshold:4,
-  fadeAnimation:true,
-  markerZoomAnimation:true,
-  // Inertia pan — flick momentum like Google Maps
-  inertia:true,
-  inertiaDeceleration:2800,
-  inertiaMaxSpeed:Infinity,
-  // Wheel zoom — smooth fractional scroll
-  scrollWheelZoom:true,
-  wheelDebounceTime:20,
-  wheelPxPerZoomLevel:80,
-  // Fractional zoom for buttery pinch / trackpad
-  zoomSnap:0.1,
-  zoomDelta:0.5,
-  doubleClickZoom:true,
-  keyboard:true,
-  keyboardPanDelta:80,
+  preferCanvas:false,
+  zoomAnimation:true, zoomAnimationThreshold:4,
+  fadeAnimation:true, markerZoomAnimation:true,
+  inertia:true, inertiaDeceleration:2800, inertiaMaxSpeed:Infinity,
+  scrollWheelZoom:true, wheelDebounceTime:20, wheelPxPerZoomLevel:80,
+  zoomSnap:0.1, zoomDelta:0.5,
+  doubleClickZoom:true, keyboard:true, keyboardPanDelta:80,
 });
 
 map.createPane('pointsPane');
