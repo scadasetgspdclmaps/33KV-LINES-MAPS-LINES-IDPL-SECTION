@@ -583,7 +583,7 @@ const map = L.map('map',{
   center:[17.4870, 78.4436], zoom:15, zoomControl:false,
   // ── GOOGLE MAPS-LIKE SMOOTHNESS ──────────────────────
   preferCanvas:true,             // GPU canvas renderer — no per-path DOM nodes
-  renderer: L.canvas({tolerance:6}),
+  renderer: L.canvas({tolerance:12}),
   zoomAnimation:true,
   zoomAnimationThreshold:4,
   fadeAnimation:true,
